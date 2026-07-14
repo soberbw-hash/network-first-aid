@@ -55,8 +55,8 @@ importers:
         specifier: ^6.3.5
         version: 6.4.3(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.1)
       wait-on:
-        specifier: ^8.0.3
-        version: 8.0.5
+        specifier: ^9.0.10
+        version: 9.0.10
 
 packages:
 
@@ -1773,9 +1773,9 @@ packages:
       yaml:
         optional: true
 
-  wait-on@8.0.5:
-    resolution: {integrity: sha512-J3WlS0txVHkhLRb2FsmRg3dkMTCV1+M6Xra3Ho7HzZDHpE7DCOnoSoCJsZotrmW3uRMhvIJGSKUKrh/MeF4iag==}
-    engines: {node: '>=12.0.0'}
+  wait-on@9.0.10:
+    resolution: {integrity: sha512-rCoJEhvMr0X6alHmwc9abbrA5ZrLZFKpFQVKPNFwl2h7DapXOGdmimIHDtLOWhT4PjhZhxFEtZoQgEXbkDWdZw==}
+    engines: {node: '>=20.0.0'}
     hasBin: true
 
   webcrypto-core@1.9.2:
@@ -3547,7 +3547,7 @@ snapshots:
       jiti: 2.7.0
       tsx: 4.23.1
 
-  wait-on@8.0.5:
+  wait-on@9.0.10:
     dependencies:
       axios: 1.18.1
       joi: 18.2.3
