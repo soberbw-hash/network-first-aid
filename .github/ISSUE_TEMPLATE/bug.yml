@@ -1,0 +1,34 @@
+name: 故障报告
+description: 报告检测、修复、备份或还原问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 请先删除节点地址、订阅链接、账号等敏感信息。
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本
+      placeholder: 例如 Windows 11 24H2
+    validations:
+      required: true
+  - type: input
+    id: proxy
+    attributes:
+      label: 代理软件与模式
+      placeholder: 例如 XSUS，系统代理开启，TUN 关闭
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述
+      description: 说明你做了什么、看到了什么，以及原本期待的结果。
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 操作记录或截图
+      description: 可粘贴已脱敏的操作记录，或直接拖入截图。

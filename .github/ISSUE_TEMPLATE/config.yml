@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 下载最新版
+    url: https://github.com/soberbw-hash/network-first-aid/releases/latest
+    about: 请先确认问题能在最新版复现。

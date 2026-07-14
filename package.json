@@ -1,0 +1,45 @@
+{
+  "name": "network-first-aid",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Windows network diagnostics, repair, backup and restore utility",
+  "author": "Sober",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soberbw-hash/network-first-aid.git"
+  },
+  "homepage": "https://github.com/soberbw-hash/network-first-aid#readme",
+  "packageManager": "pnpm@10.34.5",
+  "main": "dist-electron/main/index.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"corepack pnpm dev:main\" \"corepack pnpm dev:renderer\" \"corepack pnpm dev:electron\"",
+    "dev:main": "tsup --config tsup.config.ts --watch",
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on tcp:5188 file:dist-electron/main/index.cjs && electron .",
+    "build": "corepack pnpm build:main && corepack pnpm build:renderer",
+    "build:main": "tsup --config tsup.config.ts",
+    "build:renderer": "vite build",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "dist:win": "corepack pnpm build && electron-builder --config electron-builder.yml --win nsis portable"
+  },
+  "dependencies": {
+    "lucide-react": "^0.511.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react-swc": "^3.8.0",
+    "concurrently": "^9.1.2",
+    "electron": "^39.8.5",
+    "electron-builder": "^26.0.12",
+    "tsup": "^8.4.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "wait-on": "^8.0.3"
+  }
+}

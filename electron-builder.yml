@@ -1,0 +1,24 @@
+appId: com.sober.networkfirstaid
+productName: 网络急救箱
+directories:
+  output: release
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - assets/**/*
+  - package.json
+asar: true
+win:
+  icon: assets/icon.ico
+  target:
+    - nsis
+    - portable
+nsis:
+  artifactName: "Network-First-Aid-Setup-${version}-${arch}.${ext}"
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: 网络急救箱
+  uninstallDisplayName: 网络急救箱
+portable:
+  artifactName: "Network-First-Aid-Portable-${version}-${arch}.${ext}"

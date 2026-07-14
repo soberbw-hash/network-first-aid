@@ -1,0 +1,11 @@
+packages:
+  - "."
+
+overrides:
+  esbuild: 0.28.1
+
+onlyBuiltDependencies:
+  - "@swc/core"
+  - electron
+  - electron-winstaller
+  - esbuild
