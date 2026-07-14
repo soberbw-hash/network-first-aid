@@ -21,7 +21,7 @@
     "build:renderer": "vite build",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
-    "dist:win": "corepack pnpm build && electron-builder --config electron-builder.yml --win nsis portable"
+    "dist:win": "corepack pnpm build && electron-builder --config electron-builder.yml --win nsis portable --publish never"
   },
   "dependencies": {
     "lucide-react": "^0.511.0",
