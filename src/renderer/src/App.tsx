@@ -2,20 +2,25 @@ import {
   Activity,
   AlertTriangle,
   ArchiveRestore,
+  Bandage,
   Check,
   CheckCircle2,
   ChevronRight,
+  CircleHelp,
   CircleGauge,
   Clock3,
+  Coffee,
   DatabaseBackup,
+  Download,
   EthernetPort,
   FileClock,
   FolderOpen,
   History,
+  HeartHandshake,
   Info,
   LoaderCircle,
   Maximize2,
-  Minimize2,
+  Minus,
   Network,
   Power,
   RefreshCcw,
@@ -46,7 +51,9 @@ import type {
   RestoreScope,
   ScanReport,
   SnapshotSummary,
+  UpdateCheckResult,
 } from "../../shared/contracts";
+import { networkRepair } from "./api";
 
 type Page = "overview" | "diagnostics" | "repairs" | "snapshots" | "history";
 
@@ -96,11 +103,15 @@ export function App() {
   const [restoreSnapshot, setRestoreSnapshot] = useState<SnapshotSummary>();
   const [restoreScopes, setRestoreScopes] = useState<RestoreScope[]>(["proxy", "dns"]);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string }>();
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateResult, setUpdateResult] = useState<UpdateCheckResult>();
+  const [updateOpen, setUpdateOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const refreshSecondaryData = useCallback(async () => {
     const [nextSnapshots, nextAudit] = await Promise.all([
-      window.networkRepair.snapshots.list(),
-      window.networkRepair.audit.list(),
+      networkRepair.snapshots.list(),
+      networkRepair.audit.list(),
     ]);
     setSnapshots(nextSnapshots);
     setAudit(nextAudit);
@@ -108,8 +119,8 @@ export function App() {
 
   useEffect(() => {
     void Promise.all([
-      window.networkRepair.app.info().then(setAppInfo),
-      window.networkRepair.repairs.list().then(setActions),
+      networkRepair.app.info().then(setAppInfo),
+      networkRepair.repairs.list().then(setActions),
       refreshSecondaryData(),
     ]).catch((error) => setNotice({ kind: "error", text: errorMessage(error) }));
   }, [refreshSecondaryData]);
@@ -123,7 +134,7 @@ export function App() {
   const runScan = useCallback(async () => {
     setScanning(true);
     try {
-      const nextReport = await window.networkRepair.diagnostics.scan();
+      const nextReport = await networkRepair.diagnostics.scan();
       setReport(nextReport);
       await refreshSecondaryData();
       setNotice({ kind: "success", text: `体检完成，网络健康度 ${nextReport.score} 分` });
@@ -137,7 +148,7 @@ export function App() {
   const openPreview = useCallback(async (actionId: RepairActionId) => {
     try {
       setConfirmed(false);
-      setPreview(await window.networkRepair.repairs.preview(actionId));
+      setPreview(await networkRepair.repairs.preview(actionId));
     } catch (error) {
       setNotice({ kind: "error", text: errorMessage(error) });
     }
@@ -147,7 +158,7 @@ export function App() {
     if (!preview) return;
     setBusy(true);
     try {
-      const result: ActionResult = await window.networkRepair.repairs.run(preview.action.id);
+      const result: ActionResult = await networkRepair.repairs.run(preview.action.id);
       setPreview(undefined);
       setNotice({ kind: result.success ? "success" : "error", text: result.message });
       await refreshSecondaryData();
@@ -162,7 +173,7 @@ export function App() {
   const createSnapshot = useCallback(async () => {
     setBusy(true);
     try {
-      const snapshot = await window.networkRepair.snapshots.create("手动备份");
+      const snapshot = await networkRepair.snapshots.create("手动备份");
       await refreshSecondaryData();
       setNotice({ kind: "success", text: `快照 ${snapshot.id} 已创建` });
     } catch (error) {
@@ -176,7 +187,7 @@ export function App() {
     if (!restoreSnapshot || restoreScopes.length === 0) return;
     setBusy(true);
     try {
-      const result = await window.networkRepair.snapshots.restore(restoreSnapshot.id, restoreScopes);
+      const result = await networkRepair.snapshots.restore(restoreSnapshot.id, restoreScopes);
       setRestoreSnapshot(undefined);
       setNotice({ kind: result.success ? "success" : "error", text: result.message });
       await refreshSecondaryData();
@@ -192,7 +203,7 @@ export function App() {
     async (snapshot: SnapshotSummary) => {
       if (!window.confirm(`确定删除快照 ${snapshot.id}？此操作无法撤销。`)) return;
       try {
-        await window.networkRepair.snapshots.remove(snapshot.id);
+        await networkRepair.snapshots.remove(snapshot.id);
         await refreshSecondaryData();
         setNotice({ kind: "success", text: "快照已删除" });
       } catch (error) {
@@ -201,6 +212,32 @@ export function App() {
     },
     [refreshSecondaryData],
   );
+
+  const checkForUpdates = useCallback(async () => {
+    setCheckingUpdate(true);
+    try {
+      const result = await networkRepair.app.checkForUpdates();
+      setUpdateResult(result);
+      if (result.updateAvailable) {
+        setUpdateOpen(true);
+      } else {
+        setNotice({ kind: "success", text: `当前已是最新版本 v${result.currentVersion}` });
+      }
+    } catch (error) {
+      setNotice({ kind: "error", text: `检查更新失败：${errorMessage(error)}` });
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, []);
+
+  const openLatestRelease = useCallback(async () => {
+    try {
+      await networkRepair.app.openLatestRelease();
+      setUpdateOpen(false);
+    } catch (error) {
+      setNotice({ kind: "error", text: `打开下载页面失败：${errorMessage(error)}` });
+    }
+  }, []);
 
   const recommendedActionIds = useMemo(
     () => new Set(report?.issues.map((issue) => issue.actionId).filter(Boolean) ?? []),
@@ -292,7 +329,7 @@ export function App() {
 
           <aside className="diagnosis-panel">
             <div className="diagnosis-head">
-              <div className="score-display"><strong>{report ? score : "—"}</strong><span>分</span><small>{report ? (issueCount ? `${issueCount} 项待关注` : "当前很健康") : "健康度"}</small></div>
+              <div className="score-display"><strong>{report ? score : "?"}</strong><span>分</span><small>{report ? (issueCount ? `${issueCount} 项待关注` : "当前很健康") : "健康度"}</small></div>
               <button className="primary-button scan-button" onClick={() => void runScan()} disabled={scanning}>
                 {scanning ? <LoaderCircle className="spin" size={18} /> : <Search size={18} />}
                 {scanning ? "正在体检…" : report ? "再次体检" : "立即体检"}
@@ -308,9 +345,9 @@ export function App() {
           </aside>
 
           <div className="status-rail">
-            <div><span className="rail-icon"><EthernetPort size={18} /></span><p><small>活动网卡</small><strong>{report ? activeAdapters.length : "—"}</strong><em>{activeAdapters[0]?.name ?? "尚未检测"}</em></p></div>
-            <div><span className="rail-icon"><Router size={18} /></span><p><small>系统代理</small><strong>{report ? (proxy?.enabled ? "已开启" : "已关闭") : "—"}</strong><em>{proxy?.enabled ? proxy.server : "当前直连"}</em></p></div>
-            <div><span className="rail-icon"><Network size={18} /></span><p><small>默认路由</small><strong>{report ? report.snapshot.defaultRoutes.length : "—"}</strong><em>{primaryRoute?.nextHop ?? "尚未检测"}</em></p></div>
+            <div><span className="rail-icon"><EthernetPort size={18} /></span><p><small>活动网卡</small><strong>{report ? activeAdapters.length : "未测"}</strong><em>{activeAdapters[0]?.name ?? "尚未检测"}</em></p></div>
+            <div><span className="rail-icon"><Router size={18} /></span><p><small>系统代理</small><strong>{report ? (proxy?.enabled ? "已开启" : "已关闭") : "未测"}</strong><em>{proxy?.enabled ? proxy.server : "当前直连"}</em></p></div>
+            <div><span className="rail-icon"><Network size={18} /></span><p><small>默认路由</small><strong>{report ? report.snapshot.defaultRoutes.length : "未测"}</strong><em>{primaryRoute?.nextHop ?? "尚未检测"}</em></p></div>
             <div><span className="rail-icon"><DatabaseBackup size={18} /></span><p><small>本地备份</small><strong>{snapshots.length}</strong><em>{snapshots[0] ? formatTime(snapshots[0].createdAt) : "还没有快照"}</em></p><button className="rail-action" title="创建快照" onClick={() => void createSnapshot()} disabled={busy}><ChevronRight size={16} /></button></div>
           </div>
         </section>
@@ -356,7 +393,8 @@ export function App() {
         <section className="page-heading"><div><span className="eyebrow">白名单操作</span><h1>修复工具</h1><p>每项操作都说明改什么、风险多大、是否需要重启。</p></div><div className="admin-pill"><Shield size={16} />{appInfo?.isAdmin ? "当前已是管理员" : "需要时才弹出管理员授权"}</div></section>
         {groups.map((group) => <section className="repair-group" key={group.risk}><div className="repair-group-heading"><div><h2>{group.title}</h2><p>{group.subtitle}</p></div><span className={`risk risk-${group.risk}`}>{riskText[group.risk]}</span></div><div className="repair-grid">{actions.filter((action) => action.risk === group.risk).map((action) => {
           const recommended = recommendedActionIds.has(action.id);
-          return <article className={`repair-card ${recommended ? "recommended" : ""}`} key={action.id}>{recommended && <span className="recommend-label"><Zap size={13} /> 当前建议</span>}<div className={`repair-icon risk-${action.risk}`}>{action.id.includes("reset") || action.id === "full-network-reset" ? <RotateCcw size={21} /> : <Wrench size={21} />}</div><h3>{action.title}</h3><p>{action.description}</p><div className="repair-meta"><span>{action.requiresAdmin ? <Shield size={14} /> : <Check size={14} />}{action.requiresAdmin ? "需管理员" : "普通权限"}</span><span>{action.restartRequired ? <Power size={14} /> : <Clock3 size={14} />}{action.restartRequired ? "需重启" : "立即生效"}</span></div><button className="card-button" onClick={() => void openPreview(action.id)}>查看并执行 <ChevronRight size={15} /></button></article>;
+          const tooltipId = `repair-help-${action.id}`;
+          return <article className={`repair-card ${recommended ? "recommended" : ""}`} key={action.id}>{recommended && <span className="recommend-label"><Zap size={13} /> 当前建议</span>}<div className={`repair-icon risk-${action.risk}`}>{action.id.includes("reset") || action.id === "full-network-reset" ? <RotateCcw size={21} /> : <Wrench size={21} />}</div><div className="repair-title-row"><h3>{action.title}</h3><span className="repair-help"><button type="button" aria-label={`了解${action.title}适用情况`} aria-describedby={tooltipId}><CircleHelp size={15} /></button><span className="repair-tooltip" id={tooltipId} role="tooltip"><strong>什么时候用</strong><span>{action.recommendedFor}</span></span></span></div><p>{action.description}</p><div className="repair-meta"><span>{action.requiresAdmin ? <Shield size={14} /> : <Check size={14} />}{action.requiresAdmin ? "需管理员" : "普通权限"}</span><span>{action.restartRequired ? <Power size={14} /> : <Clock3 size={14} />}{action.restartRequired ? "需重启" : "立即生效"}</span></div><button className="card-button" onClick={() => void openPreview(action.id)}>查看并执行 <ChevronRight size={15} /></button></article>;
         })}</div></section>)}
       </>
     );
@@ -364,14 +402,14 @@ export function App() {
 
   const renderSnapshots = () => (
     <>
-      <section className="page-heading"><div><span className="eyebrow">可回滚保护</span><h1>备份与还原</h1><p>快照保存在本机，不会上传。可选择只还原代理、DNS、Hosts 或防火墙。</p></div><div className="heading-actions"><button className="ghost-button" onClick={() => void window.networkRepair.app.openDataDirectory()}><FolderOpen size={17} /> 打开目录</button><button className="primary-button" onClick={() => void createSnapshot()} disabled={busy}><DatabaseBackup size={17} /> 创建快照</button></div></section>
+      <section className="page-heading"><div><span className="eyebrow">可回滚保护</span><h1>备份与还原</h1><p>快照保存在本机，不会上传。可选择只还原代理、DNS、Hosts 或防火墙。</p></div><div className="heading-actions"><button className="ghost-button" onClick={() => void networkRepair.app.openDataDirectory()}><FolderOpen size={17} /> 打开目录</button><button className="primary-button" onClick={() => void createSnapshot()} disabled={busy}><DatabaseBackup size={17} /> 创建快照</button></div></section>
       <div className="snapshot-list">{snapshots.length ? snapshots.map((snapshot, index) => <article className="snapshot-card" key={snapshot.id}><span className={`snapshot-dot ${index === 0 ? "latest" : ""}`}><FileClock size={19} /></span><div className="snapshot-copy"><div><h3>{snapshot.reason}</h3>{index === 0 && <span className="latest-label">最新</span>}</div><p>{formatTime(snapshot.createdAt)} · {snapshot.computerName} · {formatBytes(snapshot.sizeBytes)}</p><code>{snapshot.id}</code></div><div className="snapshot-actions"><button className="restore-button" onClick={() => { setRestoreScopes(["proxy", "dns"]); setRestoreSnapshot(snapshot); }}><ArchiveRestore size={16} /> 选择还原</button><button className="icon-button danger" title="删除快照" onClick={() => void deleteSnapshot(snapshot)}><Trash2 size={16} /></button></div></article>) : <div className="large-empty"><DatabaseBackup size={36} /><h2>还没有网络快照</h2><p>第一次修复时会自动创建，你也可以现在手动备份。</p><button className="primary-button" onClick={() => void createSnapshot()}>创建第一个快照</button></div>}</div>
     </>
   );
 
   const renderHistory = () => (
     <>
-      <section className="page-heading"><div><span className="eyebrow">本机审计</span><h1>操作记录</h1><p>每次检测、备份、修复、失败和还原都有迹可循。</p></div><button className="ghost-button" onClick={() => void window.networkRepair.app.openDataDirectory()}><FolderOpen size={17} /> 查看原始文件</button></section>
+      <section className="page-heading"><div><span className="eyebrow">本机审计</span><h1>操作记录</h1><p>每次检测、备份、修复、失败和还原都有迹可循。</p></div><button className="ghost-button" onClick={() => void networkRepair.app.openDataDirectory()}><FolderOpen size={17} /> 查看原始文件</button></section>
       <section className="audit-list">{audit.length ? audit.map((entry, index) => <article key={`${entry.timestamp}-${index}`}><span className={`audit-icon ${entry.success ? "ok" : "failed"}`}>{entry.success ? <CheckCircle2 size={18} /> : <ShieldAlert size={18} />}</span><div><h3>{entry.title}</h3><p>{entry.detail}</p></div><time>{formatTime(entry.timestamp)}</time></article>) : <div className="large-empty"><History size={36} /><h2>暂无操作记录</h2><p>完成一次体检后，记录会显示在这里。</p></div>}</section>
     </>
   );
@@ -390,10 +428,17 @@ export function App() {
             {item.id === "diagnostics" && report && report.issues.some((issue) => issue.severity === "critical") && <i />}
           </button>)}
         </nav>
+        <div className="header-tools">
+          <button className={updateResult?.updateAvailable ? "has-update" : ""} title="检查更新" aria-label={checkingUpdate ? "正在检查更新" : "检查更新"} onClick={() => void checkForUpdates()} disabled={checkingUpdate}>
+            <RefreshCcw className={checkingUpdate ? "spin" : ""} size={15} />
+            <span>{checkingUpdate ? "检查中" : updateResult?.updateAvailable ? "发现更新" : "检查更新"}</span>
+          </button>
+          <button title="支持作者" onClick={() => setSupportOpen(true)}><HeartHandshake size={15} /><span>支持作者</span></button>
+        </div>
         <div className="window-controls">
-          <button aria-label="最小化" title="最小化" onClick={() => void window.networkRepair.app.minimize()}><Minimize2 size={15} /></button>
-          <button aria-label="最大化" title="最大化" onClick={() => void window.networkRepair.app.toggleMaximize()}><Maximize2 size={14} /></button>
-          <button className="close-control" aria-label="关闭" title="关闭" onClick={() => void window.networkRepair.app.close()}><X size={16} /></button>
+          <button className="minimize-control" aria-label="最小化" title="最小化" onClick={() => void networkRepair.app.minimize()}><Minus size={18} strokeWidth={2.2} /></button>
+          <button aria-label="最大化" title="最大化" onClick={() => void networkRepair.app.toggleMaximize()}><Maximize2 size={14} /></button>
+          <button className="close-control" aria-label="关闭" title="关闭" onClick={() => void networkRepair.app.close()}><X size={16} /></button>
         </div>
       </header>
       <main className={`main-content page-${page}`}>{page === "overview" && renderOverview()}{page === "diagnostics" && renderDiagnostics()}{page === "repairs" && renderRepairs()}{page === "snapshots" && renderSnapshots()}{page === "history" && renderHistory()}</main>
@@ -403,6 +448,10 @@ export function App() {
       {preview && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setPreview(undefined); }}><section className="modal" role="dialog" aria-modal="true" aria-label="确认修复"><div className="modal-head"><span className={`modal-symbol risk-${preview.action.risk}`}>{preview.action.risk === "high" ? <ShieldAlert size={22} /> : <Wrench size={22} />}</span><div><span className="eyebrow">操作预览</span><h2>{preview.action.title}</h2></div><button className="icon-button" onClick={() => setPreview(undefined)} disabled={busy}><X size={18} /></button></div><p className="modal-description">{preview.action.description}</p><div className="preview-block"><h3>将执行以下步骤</h3><ol>{preview.action.steps.map((step) => <li key={step}><span><Check size={13} /></span>{step}</li>)}</ol></div><div className="preview-facts"><span><DatabaseBackup size={16} /><b>自动快照</b>：执行前创建</span><span><Shield size={16} /><b>权限</b>：{preview.action.requiresAdmin ? "将弹出 Windows 管理员授权" : "无需管理员"}</span><span><Power size={16} /><b>重启</b>：{preview.action.restartRequired ? "完成后需要" : "不需要"}</span></div>{preview.warnings.map((warning) => <div className="warning-line" key={warning}><AlertTriangle size={16} />{warning}</div>)}{preview.action.risk === "high" && <label className="confirm-check"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span><Check size={13} /></span>我已了解影响，并确认执行此高风险操作</label>}<div className="modal-actions"><button className="ghost-button" onClick={() => setPreview(undefined)} disabled={busy}>取消</button><button className={`primary-button ${preview.action.risk === "high" ? "danger-primary" : ""}`} onClick={() => void runAction()} disabled={busy || (preview.action.risk === "high" && !confirmed)}>{busy ? <LoaderCircle className="spin" size={17} /> : <ShieldCheck size={17} />}{busy ? "正在执行…" : "备份并执行"}</button></div></section></div>}
 
       {restoreSnapshot && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true" aria-label="选择还原内容"><div className="modal-head"><span className="modal-symbol risk-low"><ArchiveRestore size={22} /></span><div><span className="eyebrow">选择性还原</span><h2>{restoreSnapshot.reason}</h2></div><button className="icon-button" onClick={() => setRestoreSnapshot(undefined)} disabled={busy}><X size={18} /></button></div><p className="modal-description">快照时间：{formatTime(restoreSnapshot.createdAt)}。还原只覆盖你勾选的内容。</p><div className="scope-list">{scopeOptions.map((scope) => { const checked = restoreScopes.includes(scope.id); return <label key={scope.id}><input type="checkbox" checked={checked} onChange={() => setRestoreScopes((current) => checked ? current.filter((item) => item !== scope.id) : [...current, scope.id])} /><span className="scope-check">{checked && <Check size={13} />}</span><div><strong>{scope.label}</strong><small>{scope.detail}</small></div></label>; })}</div><div className="warning-line"><Info size={16} />还原需要管理员授权；不存在的网卡会被自动跳过。</div><div className="modal-actions"><button className="ghost-button" onClick={() => setRestoreSnapshot(undefined)} disabled={busy}>取消</button><button className="primary-button" onClick={() => void runRestore()} disabled={busy || restoreScopes.length === 0}>{busy ? <LoaderCircle className="spin" size={17} /> : <ArchiveRestore size={17} />}{busy ? "正在还原…" : `还原 ${restoreScopes.length} 项`}</button></div></section></div>}
+
+      {updateOpen && updateResult && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setUpdateOpen(false); }}><section className="modal update-modal" role="dialog" aria-modal="true" aria-label="发现新版本"><div className="modal-head"><span className="modal-symbol update-symbol"><Download size={22} /></span><div><span className="eyebrow">软件更新</span><h2>发现新版本 v{updateResult.latestVersion}</h2></div><button className="icon-button" aria-label="关闭更新窗口" onClick={() => setUpdateOpen(false)}><X size={18} /></button></div><div className="version-route"><div><small>当前版本</small><strong>v{updateResult.currentVersion}</strong></div><ChevronRight size={19} /><div className="latest-version"><small>最新版本</small><strong>v{updateResult.latestVersion}</strong></div></div><p className="modal-description">{updateResult.releaseName.replace(/[\u2013\u2014]/g, "-")}。下载页面由 GitHub 官方托管，更新前可以先查看完整说明和校验值。</p><div className="modal-actions"><button className="ghost-button" onClick={() => setUpdateOpen(false)}>稍后再说</button><button className="primary-button" onClick={() => void openLatestRelease()}><Download size={17} /> 前往下载</button></div></section></div>}
+
+      {supportOpen && <div className="modal-backdrop support-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSupportOpen(false); }}><section className="modal support-modal" role="dialog" aria-modal="true" aria-label="支持作者"><button className="icon-button support-close" aria-label="关闭支持窗口" onClick={() => setSupportOpen(false)}><X size={18} /></button><div className="support-copy"><span className="support-mark"><Bandage size={24} /></span><span className="eyebrow">支持作者</span><h2>网络修好了，给急救箱补块创可贴</h2><p>你的支持会用来继续修 Bug、跟进 Windows 更新，也让我知道这个小工具真的帮上了忙。</p><div className="support-list"><span><Coffee size={16} /> 继续打磨体验</span><span><ShieldCheck size={16} /> 保持安全可回滚</span><span><Wrench size={16} /> 适配更多网络问题</span></div></div><div className="qr-card"><div className="qr-halo" aria-hidden="true"><HeartHandshake size={32} /></div><div className="qr-image"><img src="./support-wechat.jpg" alt="微信赞赏二维码" draggable={false} /></div><strong>微信扫码支持</strong><small>金额随意，心意已经收到</small></div></section></div>}
     </div>
   );
 }

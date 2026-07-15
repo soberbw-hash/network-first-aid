@@ -1,27 +1,29 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { getRepairScript } from "../src/main/repair-scripts";
 import { REPAIR_ACTIONS } from "../src/shared/action-catalog";
 
+const repairScript = readFileSync(
+  new URL("../src-tauri/resources/repair.ps1", import.meta.url),
+  "utf8",
+);
+
 test("orphan TUN cleanup checks adapter state before removing routes", () => {
-  const script = getRepairScript("remove-orphan-tun-routes", "C:\\safe snapshot");
-  assert.match(script, /Status -ne 'Up'/);
-  assert.match(script, /Remove-NetRoute/);
-  assert.doesNotMatch(script, /Get-NetRoute[^]*Remove-NetRoute[^]*-Confirm:\$true/);
+  assert.match(repairScript, /Status -ne 'Up'/);
+  assert.match(repairScript, /Remove-NetRoute/);
+  assert.doesNotMatch(repairScript, /Get-NetRoute[^]*Remove-NetRoute[^]*-Confirm:\$true/);
 });
 
 test("dead proxy repair only disables localhost proxies with no listener", () => {
-  const script = getRepairScript("disable-dead-proxy", "C:\\safe snapshot");
-  assert.match(script, /127\\\.0\\\.0\\\.1\|localhost/);
-  assert.match(script, /Get-NetTCPConnection -State Listen/);
-  assert.match(script, /ProxyEnable -Type DWord -Value 0/);
+  assert.match(repairScript, /127\\\.0\\\.0\\\.1\|localhost/);
+  assert.match(repairScript, /Get-NetTCPConnection -State Listen/);
+  assert.match(repairScript, /ProxyEnable -Type DWord -Value 0/);
 });
 
 test("firewall reset exports policy before resetting", () => {
-  const script = getRepairScript("reset-firewall", "C:\\safe snapshot");
-  assert.ok(script.indexOf("advfirewall export") < script.indexOf("advfirewall reset"));
-  assert.match(script, /防火墙策略备份失败，已取消重置/);
+  assert.ok(repairScript.indexOf("advfirewall export") < repairScript.indexOf("advfirewall reset"));
+  assert.match(repairScript, /防火墙策略备份失败，已取消重置/);
 });
 
 test("renderer can only select known action IDs", () => {

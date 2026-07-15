@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { analyzeSnapshot } from "../src/main/diagnostics";
 import { REPAIR_ACTIONS } from "../src/shared/action-catalog";
 import type { RawNetworkSnapshot } from "../src/shared/contracts";
+import { analyzeSnapshot } from "../src/shared/diagnostics-analysis";
 
 const makeSnapshot = (): RawNetworkSnapshot => ({
   capturedAt: new Date(0).toISOString(),
@@ -119,4 +119,9 @@ test("repair catalog is unique, finite, and high-risk actions require elevation"
   assert.equal(REPAIR_ACTIONS.length, 15);
   assert.equal(new Set(REPAIR_ACTIONS.map((action) => action.id)).size, REPAIR_ACTIONS.length);
   assert.ok(REPAIR_ACTIONS.filter((action) => action.risk === "high").every((action) => action.requiresAdmin));
+});
+
+test("every repair action explains its user-facing use case", () => {
+  assert.equal(REPAIR_ACTIONS.length, 15);
+  assert.ok(REPAIR_ACTIONS.every((action) => action.recommendedFor.trim().length >= 8));
 });

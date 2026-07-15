@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "网络急救箱",
+  "version": "0.1.1",
+  "identifier": "com.sober.networkfirstaid",
+  "build": {
+    "beforeDevCommand": "corepack pnpm dev:renderer",
+    "devUrl": "http://127.0.0.1:5188",
+    "beforeBuildCommand": "corepack pnpm build:renderer",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "网络急救箱",
+        "width": 1360,
+        "height": 860,
+        "minWidth": 1080,
+        "minHeight": 680,
+        "center": true,
+        "decorations": false,
+        "resizable": true,
+        "shadow": true,
+        "backgroundColor": "#f4f8fd"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: data:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["../assets/icon.png", "../assets/icon.ico"],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installerIcon": "../assets/icon.ico",
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "languages": ["SimpChinese"]
+      }
+    }
+  }
+}
