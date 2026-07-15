@@ -3,7 +3,8 @@
 网络急救箱使用以下第三方项目或资源：
 
 - React / React DOM — MIT License
-- Electron — MIT License
+- Tauri — Apache-2.0 / MIT License
+- Rust 标准工具链 — Apache-2.0 / MIT License
 - Lucide — ISC License
 - Vite — MIT License
 - HarmonyOS Sans — 字体许可全文见 `assets/HarmonyOS-Sans-LICENSE.txt`

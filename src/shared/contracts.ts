@@ -110,6 +110,13 @@ export interface ScanReport {
   connectivity: ConnectivityResult[];
 }
 
+export interface ScanCapture {
+  generatedAt: string;
+  durationMs: number;
+  snapshot: RawNetworkSnapshot;
+  connectivity: ConnectivityResult[];
+}
+
 export type RepairActionId =
   | "quick-repair"
   | "flush-dns"
@@ -186,6 +193,14 @@ export interface AppInfo {
   dataDirectory: string;
 }
 
+export interface UpdateCheckResult {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  releaseName: string;
+  releaseUrl: string;
+}
+
 export interface NetworkRepairApi {
   app: {
     info(): Promise<AppInfo>;
@@ -193,6 +208,8 @@ export interface NetworkRepairApi {
     toggleMaximize(): Promise<void>;
     close(): Promise<void>;
     openDataDirectory(): Promise<void>;
+    checkForUpdates(): Promise<UpdateCheckResult>;
+    openLatestRelease(): Promise<void>;
   };
   diagnostics: {
     scan(): Promise<ScanReport>;
@@ -212,20 +229,3 @@ export interface NetworkRepairApi {
     list(): Promise<AuditEntry[]>;
   };
 }
-
-export const IPC = {
-  appInfo: "netfix:app-info",
-  minimize: "netfix:minimize",
-  toggleMaximize: "netfix:toggle-maximize",
-  close: "netfix:close",
-  openDataDirectory: "netfix:open-data-directory",
-  scan: "netfix:scan",
-  repairList: "netfix:repair-list",
-  repairPreview: "netfix:repair-preview",
-  repairRun: "netfix:repair-run",
-  snapshotList: "netfix:snapshot-list",
-  snapshotCreate: "netfix:snapshot-create",
-  snapshotRestore: "netfix:snapshot-restore",
-  snapshotRemove: "netfix:snapshot-remove",
-  auditList: "netfix:audit-list",
-} as const;

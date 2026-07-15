@@ -6,15 +6,27 @@ on:
 
 permissions:
   contents: write
+  checks: write
+  issues: write
 
 jobs:
+  rust-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: src-tauri
+
   windows:
+    needs: rust-audit
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with:
-          version: 10.34.5
+          version: 11.4.0
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -23,6 +35,10 @@ jobs:
       - run: pnpm audit --audit-level=high
       - run: pnpm typecheck
       - run: pnpm test
+      - run: rustup show
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
       - run: pnpm dist:win
       - name: Generate SHA-256 checksums
         shell: pwsh
@@ -39,3 +55,4 @@ jobs:
             release/Network-First-Aid-Portable-*.exe
             release/SHA256SUMS.txt
           generate_release_notes: true
+          body_path: docs/release-v0.1.1.md

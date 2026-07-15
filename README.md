@@ -49,15 +49,19 @@
 - **只读网络体检**：检查网卡、DNS、系统代理、WinHTTP、默认路由、TUN、常见代理进程/服务、监听端口、Hosts 和真实连通性。
 - **代理专项诊断**：识别多代理同时运行、失效的 localhost 代理、断开的 TUN 默认路由，并分别测试直连与代理出口。
 - **15 项白名单修复**：覆盖 DNS、DHCP、WinHTTP、局域网绕过、网卡、Winsock、TCP/IP、Hosts、防火墙与网络组件重装。
+- **小问号场景说明**：每项修复都用普通话解释“什么时候该用”，不要求用户先懂网络术语。
 - **修复前自动备份**：任何写操作前保存结构化网络快照；高风险操作强制备份并二次确认。
 - **选择性还原**：代理、DNS、Hosts、防火墙可以单独恢复，不必一刀切重置所有配置。
+- **主动检查更新**：点击标题栏即可检查 GitHub Release；只有发现新版本时才引导下载。
 - **本机审计记录**：检测、备份、修复、失败和还原记录只保存在当前电脑，不上传网络配置。
 
 ## 界面
 
-| 总览与体检 | 修复操作预览 |
+| 总览与体检 | 修复场景说明 |
 | --- | --- |
-| ![总览](docs/dashboard.png) | ![修复预览](docs/repair-preview.png) |
+| ![总览](docs/dashboard.png) | ![修复场景说明](docs/repair-help.png) |
+
+![支持作者界面](docs/support.png)
 
 界面使用 HarmonyOS Sans，图标与主界面采用珍珠白、雾蓝和钴蓝的轻量液态玻璃视觉；动画支持系统“减少动态效果”设置。
 
@@ -80,7 +84,7 @@
 
 ## 本地开发
 
-要求：Windows 10/11、Node.js 22+、Corepack。
+要求：Windows 10/11、Node.js 22+、Corepack、Rust 1.96.1，以及 Visual Studio 2022 C++ Build Tools。Windows 10/11 通常已包含 WebView2 Runtime。
 
 ```powershell
 git clone https://github.com/soberbw-hash/network-first-aid.git
@@ -96,6 +100,7 @@ corepack pnpm dev
 corepack pnpm typecheck
 corepack pnpm test
 corepack pnpm build
+cargo test --manifest-path src-tauri/Cargo.toml
 corepack pnpm dist:win
 ```
 
@@ -103,7 +108,7 @@ corepack pnpm dist:win
 
 ## 技术栈
 
-Electron · React · TypeScript · Vite · PowerShell · electron-builder
+Tauri 2 · Rust · React · TypeScript · Vite · PowerShell · WebView2
 
 ## 反馈问题
 

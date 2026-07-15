@@ -1,0 +1,23 @@
+[package]
+name = "network-first-aid"
+version = "0.1.1"
+description = "Windows network diagnostics, repair, backup and restore utility"
+authors = ["Sober"]
+edition = "2024"
+
+[lib]
+name = "network_first_aid_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+chrono = { version = "0.4.45", features = ["serde"] }
+regex = "1.12.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tauri = { version = "2.11.5", features = [] }
+tauri-plugin-single-instance = "2.4.3"
+uuid = { version = "1.21.0", features = ["v4"] }
+wait-timeout = "0.2.1"

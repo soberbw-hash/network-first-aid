@@ -4,8 +4,6 @@ packages:
 overrides:
   esbuild: 0.28.1
 
-onlyBuiltDependencies:
-  - "@swc/core"
-  - electron
-  - electron-winstaller
-  - esbuild
+allowBuilds:
+  "@swc/core": true
+  esbuild: true
